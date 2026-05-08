@@ -63,7 +63,7 @@ This project uses the **Indian Liver Patient Dataset (ILPD)** from the UCI Machi
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/liver-disease-prediction.git
+git clone https://github.com/https:/amitkumar227/liver-disease-prediction.git
 cd liver-disease-prediction
 ```
 
