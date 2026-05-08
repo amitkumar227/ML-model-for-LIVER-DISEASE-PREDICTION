@@ -1,0 +1,326 @@
+
+<style>
+  h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .section{margin:1.5rem 0}
+  .section-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.05em;text-transform:uppercase;margin:0 0 10px}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .metric-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+  .metric-label{font-size:12px;color:var(--color-text-secondary);margin:0 0 4px}
+  .metric-value{font-size:22px;font-weight:500;color:var(--color-text-primary);margin:0}
+  .metric-sub{font-size:11px;color:var(--color-text-tertiary);margin:2px 0 0}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+  .badge-green{background:var(--color-background-success);color:var(--color-text-success)}
+  .badge-amber{background:var(--color-background-warning);color:var(--color-text-warning)}
+  .badge-blue{background:var(--color-background-info);color:var(--color-text-info)}
+  .badge-red{background:var(--color-background-danger);color:var(--color-text-danger)}
+  .model-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);cursor:pointer}
+  .model-row:last-child{border-bottom:none}
+  .model-row:hover{background:var(--color-background-secondary);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:6px}
+  .model-name{font-size:13px;font-weight:500;min-width:148px;color:var(--color-text-primary)}
+  .bar-wrap{flex:1;height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden}
+  .bar{height:100%;border-radius:4px;transition:width .5s ease}
+  .auc-val{font-size:12px;font-weight:500;min-width:44px;text-align:right;color:var(--color-text-secondary)}
+  .crown{font-size:14px;margin-left:2px}
+  .highlight-box{background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px}
+  .smote-row{display:flex;gap:12px;align-items:center;margin:6px 0}
+  .smote-bar{height:16px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:500;color:#fff;transition:width .5s}
+  .patient-result{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .prob-ring{position:relative;width:72px;height:72px;flex-shrink:0}
+  .prob-label{font-size:11px;color:var(--color-text-secondary);margin:4px 0 0;text-align:center}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+  .detail-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:.5px solid var(--color-border-tertiary)}
+  .detail-key{color:var(--color-text-secondary)}
+  .detail-val{font-weight:500;color:var(--color-text-primary)}
+  .class-report{width:100%;border-collapse:collapse;font-size:12px}
+  .class-report td,.class-report th{padding:5px 10px;text-align:right;border-bottom:.5px solid var(--color-border-tertiary)}
+  .class-report th{font-weight:500;color:var(--color-text-secondary);text-align:right}
+  .class-report td:first-child,.class-report th:first-child{text-align:left}
+  .tab-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer;background:var(--color-background-secondary);color:var(--color-text-secondary);border:.5px solid var(--color-border-tertiary)}
+  .tab.active{background:var(--color-text-primary);color:var(--color-background-primary)}
+  .panel{display:none}.panel.active{display:block}
+  .insight{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary);font-size:13px}
+  .insight:last-child{border-bottom:none}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+</style>
+
+<h2 class="sr-only">Liver disease model output explained — dataset stats, SMOTE balancing, cross-validation results, test set rankings, best model report, and patient prediction</h2>
+
+<div style="padding:1rem 0">
+
+  <!-- Tabs -->
+  <div class="tab-row">
+    <div class="tab active" onclick="show('data')">Dataset</div>
+    <div class="tab" onclick="show('smote')">SMOTE</div>
+    <div class="tab" onclick="show('cv')">Cross-validation</div>
+    <div class="tab" onclick="show('test')">Test results</div>
+    <div class="tab" onclick="show('report')">Best model</div>
+    <div class="tab" onclick="show('patient')">Patient prediction</div>
+    <div class="tab" onclick="show('insights')">Key insights</div>
+  </div>
+
+  <!-- PANEL: Dataset -->
+  <div class="panel active" id="panel-data">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">583 patients loaded from the ILPD dataset. One column had missing values.</p>
+    <div class="card-grid">
+      <div class="metric-card"><p class="metric-label">Total patients</p><p class="metric-value">583</p></div>
+      <div class="metric-card"><p class="metric-label">Features (after eng.)</p><p class="metric-value">18</p></div>
+      <div class="metric-card"><p class="metric-label">Missing values</p><p class="metric-value">4</p><p class="metric-sub">albumin/globulin ratio → imputed</p></div>
+    </div>
+    <div style="margin-top:14px">
+      <p class="section-title">Class balance</p>
+      <div class="highlight-box">
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">
+          <span class="badge badge-amber">Imbalanced</span>
+          <span style="font-size:12px;color:var(--color-text-secondary)">71.4% have liver disease — this is why SMOTE matters</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--color-text-secondary);min-width:80px">Disease (1)</div>
+          <div class="bar-wrap" style="height:20px"><div class="bar" style="width:71.4%;background:#E24B4A"></div></div>
+          <div style="font-size:13px;font-weight:500;min-width:48px">71.4%</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+          <div style="font-size:12px;color:var(--color-text-secondary);min-width:80px">Healthy (0)</div>
+          <div class="bar-wrap" style="height:20px"><div class="bar" style="width:28.6%;background:#1D9E75"></div></div>
+          <div style="font-size:13px;font-weight:500;min-width:48px">28.6%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: SMOTE -->
+  <div class="panel" id="panel-smote">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">SMOTE (Synthetic Minority Oversampling Technique) was applied <em>only to training data</em> to avoid data leakage. It generates synthetic minority-class samples so both classes are equally represented.</p>
+    <div class="highlight-box" style="margin-bottom:12px">
+      <p class="section-title">Before SMOTE — training split</p>
+      <div class="smote-row">
+        <div style="font-size:12px;color:var(--color-text-secondary);min-width:72px">Healthy</div>
+        <div class="smote-bar" style="width:140px;background:#1D9E75">133 patients</div>
+      </div>
+      <div class="smote-row">
+        <div style="font-size:12px;color:var(--color-text-secondary);min-width:72px">Disease</div>
+        <div class="smote-bar" style="width:330px;background:#E24B4A">333 patients</div>
+      </div>
+      <p style="font-size:12px;color:var(--color-text-danger);margin:8px 0 0">Ratio 1:2.5 → models learn to just predict "Disease" for everything</p>
+    </div>
+    <div class="highlight-box">
+      <p class="section-title">After SMOTE — balanced training</p>
+      <div class="smote-row">
+        <div style="font-size:12px;color:var(--color-text-secondary);min-width:72px">Healthy</div>
+        <div class="smote-bar" style="width:330px;background:#1D9E75">333 (200 synthetic added)</div>
+      </div>
+      <div class="smote-row">
+        <div style="font-size:12px;color:var(--color-text-secondary);min-width:72px">Disease</div>
+        <div class="smote-bar" style="width:330px;background:#E24B4A">333 (unchanged)</div>
+      </div>
+      <p style="font-size:12px;color:var(--color-text-success);margin:8px 0 0">Ratio 1:1 → models can now learn both classes fairly</p>
+    </div>
+  </div>
+
+  <!-- PANEL: Cross-validation -->
+  <div class="panel" id="panel-cv">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">5-fold Stratified K-Fold CV on the balanced (post-SMOTE) training set. Values are mean ± std — lower std means more stable predictions.</p>
+    <div id="cv-chart" style="position:relative;width:100%;height:280px">
+      <canvas id="cvCanvas" role="img" aria-label="Bar chart of cross-validation ROC-AUC scores for 8 models">CV AUC: LogReg 0.73, DTree 0.77, RF 0.887, AdaBoost 0.75, GB 0.883, XGB 0.881, LGBM 0.874, CatBoost 0.872</canvas>
+    </div>
+    <p style="font-size:11px;color:var(--color-text-tertiary);margin:6px 0 0">Error bars show ± 1 std. XGBoost tuned later with Optuna and reached 0.908.</p>
+  </div>
+
+  <!-- PANEL: Test results -->
+  <div class="panel" id="panel-test">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">Evaluated on the held-out 20% test set (117 patients). Sorted by ROC-AUC. Note: Logistic Regression ranked first — see Key Insights for why this is surprising.</p>
+    <div id="model-list">
+      <!-- rendered by JS -->
+    </div>
+    <div style="margin-top:10px;display:flex;gap:16px;font-size:11px;color:var(--color-text-tertiary);flex-wrap:wrap">
+      <span>🟥 &lt; 0.78</span><span>🟨 0.78–0.82</span><span>🟩 &gt; 0.82</span>
+    </div>
+  </div>
+
+  <!-- PANEL: Best model report -->
+  <div class="panel" id="panel-report">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">Best model by ROC-AUC was <strong>Logistic Regression</strong> (0.826). Classification report on 117 test patients:</p>
+    <div class="card-grid" style="margin-bottom:14px">
+      <div class="metric-card"><p class="metric-label">Accuracy</p><p class="metric-value">74.4%</p></div>
+      <div class="metric-card"><p class="metric-label">Recall (sensitivity)</p><p class="metric-value">68.7%</p><p class="metric-sub">Of 83 sick → caught 57</p></div>
+      <div class="metric-card"><p class="metric-label">Specificity</p><p class="metric-value">88.2%</p><p class="metric-sub">Of 34 healthy → correct 30</p></div>
+      <div class="metric-card"><p class="metric-label">ROC-AUC</p><p class="metric-value">0.826</p></div>
+    </div>
+    <div class="highlight-box">
+      <p class="section-title">Per-class breakdown</p>
+      <table class="class-report">
+        <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead>
+        <tbody>
+          <tr><td>Healthy (0)</td><td>0.54</td><td>0.88</td><td>0.67</td><td>34</td></tr>
+          <tr><td>Liver Disease (1)</td><td>0.93</td><td>0.69</td><td>0.79</td><td>83</td></tr>
+          <tr style="border-top:.5px solid var(--color-border-secondary)"><td>Weighted avg</td><td>0.82</td><td>0.74</td><td>0.76</td><td>117</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-tertiary);margin:8px 0 0">Confusion matrix: out of 83 disease patients, 57 correctly predicted. Out of 34 healthy, 30 correctly predicted. 26 disease patients were missed (false negatives).</p>
+  </div>
+
+  <!-- PANEL: Patient -->
+  <div class="panel" id="panel-patient">
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 12px">Sample patient passed to <code>predict_liver_disease()</code>. Logistic Regression was used as it had the best ROC-AUC on test data.</p>
+    <div class="highlight-box patient-result">
+      <div>
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="32" fill="none" stroke="var(--color-border-tertiary)" stroke-width="6"/>
+          <circle cx="36" cy="36" r="32" fill="none" stroke="#E24B4A" stroke-width="6"
+            stroke-dasharray="126.8" stroke-dashoffset="47.3" stroke-linecap="round" transform="rotate(-90 36 36)"/>
+          <text x="36" y="40" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)">62%</text>
+        </svg>
+        <p class="prob-label">Probability</p>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px;font-weight:500;color:var(--color-text-primary)">Liver Disease</span>
+          <span class="badge badge-red">Positive</span>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-row"><span class="detail-key">Age</span><span class="detail-val">52, Male</span></div>
+          <div class="detail-row"><span class="detail-key">Total Bilirubin</span><span class="detail-val">1.8</span></div>
+          <div class="detail-row"><span class="detail-key">ALT</span><span class="detail-val">48</span></div>
+          <div class="detail-row"><span class="detail-key">AST</span><span class="detail-val">55</span></div>
+          <div class="detail-row"><span class="detail-key">Albumin</span><span class="detail-val">3.2</span></div>
+          <div class="detail-row"><span class="detail-key">A/G Ratio</span><span class="detail-val">0.9</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-tertiary);margin:10px 0 0">62.4% probability exceeds the 50% threshold → predicted as Liver Disease. The AST/ALT ratio of 1.15 and low albumin (3.2 g/dL) are clinically consistent with liver dysfunction.</p>
+  </div>
+
+  <!-- PANEL: Insights -->
+  <div class="panel" id="panel-insights">
+    <div class="highlight-box">
+      <div class="insight">
+        <div class="dot" style="background:#E24B4A"></div>
+        <div><strong>Why did Logistic Regression beat XGBoost?</strong><br><span style="color:var(--color-text-secondary)">The test set is small (117 patients). LR achieved 0.826 AUC vs XGBoost's 0.809 — this gap could easily reverse with more data or a different random split. Don't over-read the ranking.</span></div>
+      </div>
+      <div class="insight">
+        <div class="dot" style="background:#BA7517"></div>
+        <div><strong>Optuna boosted XGBoost from 0.881 → 0.908 AUC (CV)</strong><br><span style="color:var(--color-text-secondary)">The tuned XGBoost's best CV score was 0.908 — but its test AUC dropped to 0.809. This is mild overfitting to the CV folds. Add more regularisation (higher reg_alpha).</span></div>
+      </div>
+      <div class="insight">
+        <div class="dot" style="background:#1D9E75"></div>
+        <div><strong>Stacking didn't outperform base models</strong><br><span style="color:var(--color-text-secondary)">Stacking (0.805 AUC) tied XGBoost Tuned. With only 117 test samples, stacking's advantage needs more data to show. This is expected on small datasets.</span></div>
+      </div>
+      <div class="insight">
+        <div class="dot" style="background:#3B8BD4"></div>
+        <div><strong>26 disease patients were missed (false negatives)</strong><br><span style="color:var(--color-text-secondary)">LR's recall is 68.7% — meaning 1 in 3 sick patients is missed. In a clinical setting, lower your threshold from 0.5 to ~0.35 to prioritise recall over precision.</span></div>
+      </div>
+      <div class="insight">
+        <div class="dot" style="background:#534AB7"></div>
+        <div><strong>LightGBM has the best F1 (0.845) on test</strong><br><span style="color:var(--color-text-secondary)">LightGBM achieves the highest F1 score and best accuracy (77.8%). For balanced precision/recall, it's actually the strongest model despite ranking lower by AUC.</span></div>
+      </div>
+      <div class="insight">
+        <div class="dot" style="background:#0F6E56"></div>
+        <div><strong>SMOTE worked — class-wise results improved</strong><br><span style="color:var(--color-text-secondary)">Healthy-class recall reached 88.2% (specificity), meaning the model correctly identifies most truly healthy patients too — not just biased toward the majority class.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function show(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'cv' && !window._cvDrawn) { drawCV(); window._cvDrawn = true; }
+}
+
+const models = [
+  {name:'Logistic Regression', auc:0.8264, acc:0.7436, recall:0.6867, spec:0.8824, f1:0.7917, crown:true},
+  {name:'Random Forest',        auc:0.8147, acc:0.7607, recall:0.8072, spec:0.6471, f1:0.8272},
+  {name:'XGBoost (Tuned)',       auc:0.8094, acc:0.7436, recall:0.8795, spec:0.4118, f1:0.8295},
+  {name:'Stacking',              auc:0.8049, acc:0.7436, recall:0.8795, spec:0.4118, f1:0.8295},
+  {name:'CatBoost',              auc:0.8016, acc:0.7521, recall:0.8434, spec:0.5294, f1:0.8284},
+  {name:'Soft Voting',           auc:0.8005, acc:0.7521, recall:0.7952, spec:0.6471, f1:0.8199},
+  {name:'LightGBM',              auc:0.7973, acc:0.7778, recall:0.8554, spec:0.5882, f1:0.8452},
+  {name:'XGBoost',               auc:0.7959, acc:0.7521, recall:0.8916, spec:0.4118, f1:0.8362},
+  {name:'AdaBoost',              auc:0.7938, acc:0.6923, recall:0.6386, spec:0.8235, f1:0.7465},
+  {name:'Gradient Boosting',     auc:0.7789, acc:0.7692, recall:0.8434, spec:0.5882, f1:0.8383},
+  {name:'Decision Tree',         auc:0.6267, acc:0.6325, recall:0.6265, spec:0.6471, f1:0.7075},
+];
+
+function aucColor(v) {
+  if (v > 0.82) return '#1D9E75';
+  if (v > 0.78) return '#BA7517';
+  return '#E24B4A';
+}
+
+const list = document.getElementById('model-list');
+models.forEach(m => {
+  const row = document.createElement('div');
+  row.className = 'model-row';
+  const pct = ((m.auc - 0.6) / (0.83 - 0.6) * 100).toFixed(1);
+  row.innerHTML = `
+    <span class="model-name">${m.name}${m.crown ? ' <span class="crown">👑</span>' : ''}</span>
+    <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${aucColor(m.auc)}"></div></div>
+    <span class="auc-val">${m.auc.toFixed(4)}</span>
+  `;
+  row.onclick = () => {
+    const msg = `Explain the ${m.name} result in the liver disease model: AUC=${m.auc.toFixed(4)}, Recall=${m.recall.toFixed(4)}, Specificity=${m.spec.toFixed(4)}, F1=${m.f1.toFixed(4)}`;
+    sendPrompt(msg);
+  };
+  list.appendChild(row);
+});
+
+function drawCV() {
+  const ctx = document.getElementById('cvCanvas').getContext('2d');
+  const cvData = [
+    {label:'Logistic Reg.', mean:0.7336, std:0.0357},
+    {label:'Decision Tree',  mean:0.7700, std:0.0258},
+    {label:'Random Forest',  mean:0.8867, std:0.0068},
+    {label:'AdaBoost',       mean:0.7497, std:0.0352},
+    {label:'Grad. Boost',    mean:0.8834, std:0.0055},
+    {label:'XGBoost',        mean:0.8810, std:0.0138},
+    {label:'LightGBM',       mean:0.8740, std:0.0049},
+    {label:'CatBoost',       mean:0.8716, std:0.0127},
+  ];
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cvData.map(d => d.label),
+      datasets: [{
+        label: 'ROC-AUC',
+        data: cvData.map(d => d.mean),
+        backgroundColor: cvData.map(d => d.mean > 0.87 ? '#1D9E75' : d.mean > 0.82 ? '#BA7517' : '#3B8BD4'),
+        borderColor: 'transparent',
+        borderRadius: 4,
+        errorBars: cvData.map(d => ({plus: d.std, minus: d.std}))
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          callbacks: {
+            label: (ctx2) => {
+              const d = cvData[ctx2.dataIndex];
+              return `AUC: ${d.mean.toFixed(4)} ± ${d.std.toFixed(4)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0.65, max: 0.95,
+          ticks: {font:{size:11}, callback: v => v.toFixed(2)},
+          grid: {color: 'rgba(128,128,128,0.1)'}
+        },
+        x: {
+          ticks: {font:{size:10}, maxRotation: 30},
+          grid: {display: false}
+        }
+      }
+    }
+  });
+}
+</script>
